@@ -1,0 +1,23 @@
+{
+  "name": "translator",
+  "authors": [
+    "Robert Soriano <sorianorobertc@gmail.com>"
+  ],
+  "description": "A simple Google Translate like web app using yandex api and artyom",
+  "main": "",
+  "license": "MIT",
+  "homepage": "",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "vue": "^2.3.4",
+    "artyom.js": "^1.0.5",
+    "axios": "^0.16.2",
+    "clipboard": "^1.7.1"
+  }
+}

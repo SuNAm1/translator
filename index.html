@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="description" content="Awesome Translator with Optical Character Recognition and Voice Support">
+    <title>Awesome Translate</title>
+    <link rel="icon" href="static/img/icon.ico">
+    <link href='https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Material+Icons' rel="stylesheet" type="text/css">
+    <link href="https://unpkg.com/vuetify/dist/vuetify.min.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+    <v-app id="translatorApp">
+        <v-toolbar>
+            <v-toolbar-title class="white--text"> Awesome Translate</v-toolbar-title>
+        </v-toolbar>
+        <main>
+            <!--snackbar-->
+            <v-snackbar
+                :timeout="2000"
+                top
+                right
+                v-model="snackbar"
+                >
+                {{ snackbar_msg }}
+                <v-btn flat class="pink--text" @click.native="snackbar = false">Close</v-btn>
+            </v-snackbar>
+            <!--snackbar-->
+            <!-- img dialog -->
+            <v-dialog v-model="img_dialog">
+                <v-card>
+                    <v-card-row>
+                        <v-card-title>Image URL</v-card-title>
+                    </v-card-row>
+                    <v-card-row>
+                        <v-card-text>
+                            <p class="text-xs-center" v-show="spinner"><v-progress-circular indeterminate v-bind:size="50" class="primary--text"></v-progress-circular></p>
+                            <v-text-field v-model="image_url" required v-show="image_url_field"></v-text-field>
+                        </v-card-text>
+                    </v-card-row>
+                    <v-card-row actions>
+                        <v-btn class="grey--text darken-1" flat @click.native="img_dialog = false">Cancel</v-btn>
+                        <v-btn class="blue--text darken-1" flat @click.native="detectImage" :disabled="convert_button">Convert</v-btn>
+                    </v-card-row>
+                </v-card>
+            </v-dialog>
+            <!-- img dialog -->
+            <v-container fluid>
+                <v-layout row wrap>
+                    <v-flex xs12 sm12 md6 lg6 xl6 style="margin-bottom: 20px;">
+                        <v-card>
+                            <v-card-row class="grey lighten-2">
+                                <v-card-title>
+                                    <span class="blue--text text--darken-3">Text to Translate</span>
+                                    <v-spacer></v-spacer>
+                                    <div>
+                                        <v-btn icon="icon" class="blue--text text--darken-3" @click.native.stop="img_dialog = true">
+                                            <v-icon>add_a_photo</v-icon>
+                                        </v-btn>
+                                        <v-btn icon="icon" class="blue--text text--darken-3" @click.native="startListening">
+                                            <v-icon>record_voice_over</v-icon>
+                                        </v-btn>
+                                    </div>
+                                </v-card-title>
+                            </v-card-row>
+                            <v-card-text>
+                                <v-text-field multi-line v-model="text_to_translate"></v-text-field>
+                            </v-card-text>
+                            <v-divider></v-divider>
+                            <v-card-row actions>
+                                <v-btn flat class="blue--text darken-1" @click.native="translate">Translate <v-icon right class="blue--text darken-1">send</v-icon></v-btn>
+                            </v-card-row>
+                        </v-card>
+                    </v-flex>
+                    <v-flex xs12 sm12 md6 lg6 xl6>
+                        <v-card>
+                            <v-card-row class="grey lighten-2">
+                                <v-card-title>
+                                    <span class="blue--text text--darken-3">{{translated_text_title}}</span>
+                                    <v-spacer></v-spacer>
+                                    <div>
+                                        <v-btn icon="icon" slot="activator" class="blue--text text--darken-3 clipboard-btn" @click.native="copied" data-clipboard-target="#clipboard_text">
+                                            <v-icon>content_copy</v-icon>
+                                        </v-btn>
+                                        <v-menu id="languages" transition="v-scale-transition" bottom left origin="center center" max-height="300">
+
+                                            <v-btn icon="icon" slot="activator" class="blue--text text--darken-3">
+                                                <v-icon>language</v-icon>
+                                            </v-btn>
+                                            <v-list>
+                                                <v-list-item v-for="(l, i) in languages" :key="i">
+                                                    <v-list-tile router @click.native="setLanguage(l.code)">
+                                                        <v-list-tile-title>{{l.lang}}</v-list-tile-title>
+                                                    </v-list-tile>
+                                                </v-list-item>
+                                            </v-list>
+                                        </v-menu>
+                                    </div>
+                                </v-card-title>
+                            </v-card-row>
+                            <v-card-text>
+                                <v-progress-linear v-bind:indeterminate="true" v-show="loader"></v-progress-linear>
+                                <h5 id="clipboard_text">{{translated_text}}</h5>
+                            </v-card-text>
+                            <v-divider></v-divider>
+                            <v-card-row actions>
+                                <v-btn flat class="blue--text darken-1" @click.native="listen">Listen <v-icon right class="blue--text darken-1">volume_up</v-icon></v-btn>
+                            </v-card-row>
+                        </v-card>
+                    </v-flex>
+                </v-layout>
+            </v-container>
+        </main>
+        <v-footer class="pa-3">
+            <v-spacer></v-spacer>
+            <div>robertsoriano.com © {{ new Date().getFullYear() }}</div>
+        </v-footer>
+    </v-app>
+    <!-- Scripts -->
+    <!-- vue -->
+    <script src="static/bower_components/vue/dist/vue.min.js"></script>
+    <!-- vuetify -->
+    <script src="https://unpkg.com/vuetify/dist/vuetify.min.js"></script>
+    <!-- Optical Character Recognition -->
+    <script src='https://cdn.rawgit.com/naptha/tesseract.js/1.0.10/dist/tesseract.js'></script>
+    <!-- Resource Promise -->
+    <script src="static/bower_components/axios/dist/axios.min.js"></script>
+    <!-- TTS and Speech Recognition -->
+    <script src="static/bower_components/artyom.js/build-vanilla/artyom.min.js"></script>
+    <!-- Clipboard -->
+    <script src="static/bower_components/clipboard/dist/clipboard.min.js"></script>
+    <!-- Main App -->
+    <script src="static/app.js"></script>
+</body>
+
+</html>
